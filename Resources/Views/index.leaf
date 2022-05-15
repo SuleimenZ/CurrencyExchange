@@ -2,11 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-
-  <title>#(title)</title>
+  <title>Currency Convertion</title>
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
 </head>
 
 <body>
-  <h1>#(title)</h1>
+  <h1>Currency convertion</h1>
+  <div> 
+    <div id="selection">
+      <select id="currencySelectionFrom" onchange="getRate()">
+        <option value="" selected="selected" hidden="hidden">From</option>
+        #for(curr in currencies):
+          <option value="#(curr)">#(curr)</option>
+        #endfor
+      </select>
+
+      <img src="/icons/swap.png" id="icon" alt="swap currencies" onclick="swap()">
+
+      <select id="currencySelectionTo" onchange="getRate()">
+        <option value="" selected="selected" hidden="hidden">To</option>
+        #for(curr in currencies):
+          <option value="#(curr)" >#(curr)</option>
+        #endfor
+      </select>
+    </div>
+
+    <div id="display">
+      <input id="displayBoxFrom" value=0 type="text" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');onFromInputChange();"/>
+      <img src="/icons/right-arrow.png" alt="right arrow" id="icon">
+      <input id="displayBoxTo" value=0 type="text" oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1').replace(/^0[^.]/, '0');onToInputChange();"/>
+    </div>
+
+    <h5>Currency rates are provided by <a href="https://exchangerate.host/#/"><b>exchangerate.host</b></a></h5>
+  </div>
 </body>
+
+<script type="text/javascript">
+    let rate = 0;
+
+    function getRate(){
+      var from = document.getElementById("currencySelectionFrom").value;
+      var to = document.getElementById("currencySelectionTo").value;
+
+      if(from == "From" || to == "To"){ return; }
+
+      from = from.substring(0,3);
+      to = to.substring(0,3);
+
+      var client = new HttpClient();
+      client.get(`https://api.exchangerate.host/convert?from=${from}&to=${to}`, function(response) {
+        let parsed = JSON.parse(response);
+        if(parsed.success){
+          rate = parsed.result
+          onFromInputChange();
+        }else{
+          rate = 0;
+          alert("Error getting exchange rate");
+        }
+      });
+    }
+
+    function onFromInputChange() {
+      var from = document.getElementById("displayBoxFrom").value;
+      if (rate == 0){ return; }
+      document.getElementById("displayBoxTo").value = from*rate;
+    }
+
+    function onToInputChange() {
+      var to = document.getElementById("displayBoxTo").value;
+      if(rate == 0){ return; }
+      document.getElementById("displayBoxFrom").value = to/rate;
+    }
+
+    function swap(){
+      let temp = document.getElementById("currencySelectionFrom").value;
+      document.getElementById("currencySelectionFrom").value = document.getElementById("currencySelectionTo").value;
+      document.getElementById("currencySelectionTo").value = temp;
+      getRate();
+    }
+
+    var HttpClient = function() {
+      this.get = function(aUrl, aCallback) {
+        var anHttpRequest = new XMLHttpRequest();
+        anHttpRequest.onreadystatechange = function() { 
+          if (anHttpRequest.readyState == 4 && anHttpRequest.status == 200) {
+            aCallback(anHttpRequest.responseText);
+          }
+        }
+
+        anHttpRequest.open( "GET", aUrl, true );            
+        anHttpRequest.send( null );
+      }
+    }
+</script>
+
 </html>
